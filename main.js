@@ -16,28 +16,22 @@ function ShaderProgram(name, program) {
 
     this.i_attrib_vertex = -1;
     this.i_attrib_normal = -1;
+    this.i_attrib_tangent = -1;
+    this.i_attrib_texcoord = -1;
+
     this.i_mvp_matrix = -1;
     this.i_mv_matrix = -1;
     this.i_normal_matrix = -1;
     this.i_light_pos = -1;
+    this.i_tex_diffuse = -1;
+    this.i_tex_specular = -1;
+    this.i_tex_normal = -1;
 
     this.use = function() {
         gl.useProgram(this.prog);
     };
 }
 
-function get_light_position(angle) {
-    const radius = 3.0;
-    const height = 0.5;
-    return [
-        radius * Math.cos(angle),
-        radius * Math.sin(angle),
-        height
-    ];
-}
-
-// Normal matrix = transpose(inverse(upper-left 3x3 of modelview))
-// For rotation-only transforms: inv(R)^T = R, so this simplifies
 function mat4_to_mat3_normal(mv) {
     const a00 = mv[0], a01 = mv[1], a02 = mv[2];
     const a10 = mv[4], a11 = mv[5], a12 = mv[6];
@@ -72,7 +66,7 @@ function transform_light(light_pos, mv) {
 }
 
 function draw() {
-    gl.clearColor(0.05, 0.08, 0.12, 1);
+    gl.clearColor(0.04, 0.06, 0.1, 1);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     const projection = m4.perspective(Math.PI / 8, 1, 8, 12);
@@ -87,19 +81,22 @@ function draw() {
     const mvp = m4.multiply(projection, mv);
     const normal_mat = mat4_to_mat3_normal(mv);
 
-    const light_world = get_light_position(light_angle);
-    const light_eye = transform_light(light_world, mv);
+    const light_eye = transform_light([3.5 * Math.cos(light_angle), 3.5 * Math.sin(light_angle), 0.5], mv);
 
     gl.uniformMatrix4fv(sh_program.i_mvp_matrix, false, mvp);
     gl.uniformMatrix4fv(sh_program.i_mv_matrix, false, mv);
     gl.uniformMatrix3fv(sh_program.i_normal_matrix, false, normal_mat);
     gl.uniform3fv(sh_program.i_light_pos, light_eye);
 
+    gl.uniform1i(sh_program.i_tex_diffuse, 0);
+    gl.uniform1i(sh_program.i_tex_specular, 1);
+    gl.uniform1i(sh_program.i_tex_normal, 2);
+
     surface.draw();
 }
 
 function animate() {
-    light_angle += 0.03;
+    light_angle += 0.018;
     draw();
     anim_id = requestAnimationFrame(animate);
 }
@@ -127,18 +124,27 @@ function on_slider_v(val) {
 function init_gl() {
     const prog = create_program(gl, vertexShaderSource, fragmentShaderSource);
 
-    sh_program = new ShaderProgram('Gouraud', prog);
+    sh_program = new ShaderProgram('NormalMap', prog);
     sh_program.use();
 
     sh_program.i_attrib_vertex = gl.getAttribLocation(prog, 'a_vertex');
     sh_program.i_attrib_normal = gl.getAttribLocation(prog, 'a_normal');
+    sh_program.i_attrib_tangent = gl.getAttribLocation(prog, 'a_tangent');
+    sh_program.i_attrib_texcoord = gl.getAttribLocation(prog, 'a_texcoord');
     sh_program.i_mvp_matrix = gl.getUniformLocation(prog, 'u_mvp_matrix');
     sh_program.i_mv_matrix = gl.getUniformLocation(prog, 'u_mv_matrix');
     sh_program.i_normal_matrix = gl.getUniformLocation(prog, 'u_normal_matrix');
     sh_program.i_light_pos = gl.getUniformLocation(prog, 'u_light_pos');
+    sh_program.i_tex_diffuse = gl.getUniformLocation(prog, 'u_tex_diffuse');
+    sh_program.i_tex_specular = gl.getUniformLocation(prog, 'u_tex_specular');
+    sh_program.i_tex_normal = gl.getUniformLocation(prog, 'u_tex_normal');
 
     surface = new Model('Surface');
     rebuild_surface();
+
+    surface.tex_diffuse = load_texture('textures/diffuse.jpg', draw);
+    surface.tex_specular = load_texture('textures/specular.jpg', draw);
+    surface.tex_normal = load_texture('textures/normal.jpg', draw);
 
     gl.enable(gl.DEPTH_TEST);
 }

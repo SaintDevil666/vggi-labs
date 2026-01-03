@@ -4,9 +4,11 @@ const R1 = 0.5;
 const R2 = 1.5;
 const B = 1.0;
 
-function Vertex(p) {
+function Vertex(p, uv) {
     this.p = p;
+    this.uv = uv;
     this.normal = [0, 0, 0];
+    this.tangent = [0, 0, 0];
     this.triangles = [];
 }
 
@@ -15,20 +17,6 @@ function Triangle(v0, v1, v2) {
     this.v1 = v1;
     this.v2 = v2;
     this.normal = [0, 0, 0];
-}
-
-function calc_radius(alpha) {
-    const k = Math.PI / (2 * B);
-    return (R2 - R1) / 2 * (1 - Math.cos(k * alpha)) + R1;
-}
-
-function surface_point(alpha, beta) {
-    const r = calc_radius(alpha);
-    return [
-        r * Math.cos(beta),
-        r * Math.sin(beta),
-        alpha - B
-    ];
 }
 
 function vec_sub(a, b) {
@@ -47,10 +35,38 @@ function vec_add(a, b) {
     return [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
 }
 
+function vec_scale(v, s) {
+    return [v[0] * s, v[1] * s, v[2] * s];
+}
+
 function vec_normalize(v) {
     const len = Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
     if (len < 1e-10) return [0, 0, 1];
     return [v[0] / len, v[1] / len, v[2] / len];
+}
+
+function calc_radius(alpha) {
+    const k = Math.PI / (2 * B);
+    return (R2 - R1) / 2 * (1 - Math.cos(k * alpha)) + R1;
+}
+
+function surface_point(alpha, beta) {
+    const r = calc_radius(alpha);
+    return [
+        r * Math.cos(beta),
+        r * Math.sin(beta),
+        alpha - B
+    ];
+}
+
+function calc_analytical_tangent(alpha, beta) {
+    const r = calc_radius(alpha);
+
+    const tx = -r * Math.sin(beta);
+    const ty = r * Math.cos(beta);
+    const tz = 0.0;
+
+    return vec_normalize([tx, ty, tz]);
 }
 
 function calc_triangle_normal(vertices, tri) {
@@ -71,9 +87,15 @@ function create_surface_data(n_alpha, n_beta) {
 
     for (let i = 0; i <= n_alpha; i++) {
         const alpha = i * d_alpha;
+        const v_coord = alpha / (2 * B);
+
         for (let j = 0; j < n_beta; j++) {
             const beta = j * d_beta;
-            vertices.push(new Vertex(surface_point(alpha, beta)));
+            const u_coord = beta / (2 * Math.PI);
+
+            const vert = new Vertex(surface_point(alpha, beta), [u_coord, v_coord]);
+            vert.tangent = calc_analytical_tangent(alpha, beta);
+            vertices.push(vert);
         }
     }
 
@@ -116,14 +138,20 @@ function create_surface_data(n_alpha, n_beta) {
         vert.normal = vec_normalize(n);
     }
 
-    const vert_data = new Float32Array(vertices.length * 6);
+    const vert_data = new Float32Array(vertices.length * 11);
     for (let i = 0; i < vertices.length; i++) {
-        vert_data[i * 6 + 0] = vertices[i].p[0];
-        vert_data[i * 6 + 1] = vertices[i].p[1];
-        vert_data[i * 6 + 2] = vertices[i].p[2];
-        vert_data[i * 6 + 3] = vertices[i].normal[0];
-        vert_data[i * 6 + 4] = vertices[i].normal[1];
-        vert_data[i * 6 + 5] = vertices[i].normal[2];
+        const base = i * 11;
+        vert_data[base + 0] = vertices[i].p[0];
+        vert_data[base + 1] = vertices[i].p[1];
+        vert_data[base + 2] = vertices[i].p[2];
+        vert_data[base + 3] = vertices[i].normal[0];
+        vert_data[base + 4] = vertices[i].normal[1];
+        vert_data[base + 5] = vertices[i].normal[2];
+        vert_data[base + 6] = vertices[i].tangent[0];
+        vert_data[base + 7] = vertices[i].tangent[1];
+        vert_data[base + 8] = vertices[i].tangent[2];
+        vert_data[base + 9] = vertices[i].uv[0];
+        vert_data[base + 10] = vertices[i].uv[1];
     }
 
     const idx_data = new Uint16Array(triangles.length * 3);
@@ -141,6 +169,9 @@ function Model(name) {
     this.vertex_buffer = gl.createBuffer();
     this.index_buffer = gl.createBuffer();
     this.count = 0;
+    this.tex_diffuse = null;
+    this.tex_specular = null;
+    this.tex_normal = null;
 
     this.buffer_data = function(vertices, indices) {
         gl.bindBuffer(gl.ARRAY_BUFFER, this.vertex_buffer);
@@ -153,13 +184,30 @@ function Model(name) {
     };
 
     this.draw = function() {
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, this.tex_diffuse);
+
+        gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture(gl.TEXTURE_2D, this.tex_specular);
+
+        gl.activeTexture(gl.TEXTURE2);
+        gl.bindTexture(gl.TEXTURE_2D, this.tex_normal);
+
+        const stride = 44;
+
         gl.bindBuffer(gl.ARRAY_BUFFER, this.vertex_buffer);
 
-        gl.vertexAttribPointer(sh_program.i_attrib_vertex, 3, gl.FLOAT, false, 24, 0);
+        gl.vertexAttribPointer(sh_program.i_attrib_vertex, 3, gl.FLOAT, false, stride, 0);
         gl.enableVertexAttribArray(sh_program.i_attrib_vertex);
 
-        gl.vertexAttribPointer(sh_program.i_attrib_normal, 3, gl.FLOAT, false, 24, 12);
+        gl.vertexAttribPointer(sh_program.i_attrib_normal, 3, gl.FLOAT, false, stride, 12);
         gl.enableVertexAttribArray(sh_program.i_attrib_normal);
+
+        gl.vertexAttribPointer(sh_program.i_attrib_tangent, 3, gl.FLOAT, false, stride, 24);
+        gl.enableVertexAttribArray(sh_program.i_attrib_tangent);
+
+        gl.vertexAttribPointer(sh_program.i_attrib_texcoord, 2, gl.FLOAT, false, stride, 36);
+        gl.enableVertexAttribArray(sh_program.i_attrib_texcoord);
 
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.index_buffer);
         gl.drawElements(gl.TRIANGLES, this.count, gl.UNSIGNED_SHORT, 0);

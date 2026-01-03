@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>PA2 - Surface of Conjugation of Two Coaxial Cylinders</title>
+    <title>PA3 - Textured Surface with Normal Mapping</title>
     <style>
         * {
             box-sizing: border-box;
@@ -49,7 +49,7 @@
             border-radius: 8px;
             padding: 20px;
             border: 1px solid #30363d;
-            min-width: 200px;
+            min-width: 220px;
         }
         .controls h3 {
             margin: 0 0 15px 0;
@@ -107,16 +107,41 @@
         .info-box p {
             margin: 4px 0;
         }
+        .texture-preview {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #30363d;
+        }
+        .texture-preview h4 {
+            margin: 0 0 10px 0;
+            color: #58a6ff;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .tex-list {
+            font-size: 11px;
+            line-height: 1.8;
+        }
+        .tex-list span {
+            display: inline-block;
+            padding: 2px 6px;
+            background: #1f6feb;
+            border-radius: 3px;
+            margin-right: 4px;
+            color: #fff;
+        }
     </style>
     <script src="./Utils/trackball-rotator.js"></script>
     <script src="./Utils/m4.js"></script>
     <script src="./shader.gpu"></script>
+    <script src="./TextureHandler.js"></script>
     <script src="./Model.js"></script>
     <script src="./main.js"></script>
 </head>
 <body onload="init()">
     <div class="container">
         <h1>Surface of Conjugation of Two Coaxial Cylinders</h1>
+        <div class="subtitle">Variant #10 | Normal Mapping with Triple Texture</div>
 
         <div class="main-area">
             <div id="canvas-holder">
@@ -124,7 +149,7 @@
             </div>
 
             <div class="controls">
-                <h3>Surface Granularity</h3>
+                <h3>Mesh Density</h3>
 
                 <div class="control-group">
                     <label>
@@ -145,10 +170,19 @@
                 </div>
 
                 <div class="info-box">
-                    <p><strong>Shading:</strong> Gouraud (per-vertex)</p>
-                    <p><strong>Normals:</strong> Facet Average</p>
-                    <p><strong>Lighting:</strong> Phong model</p>
-                    <p><strong>Light:</strong> Rotating around surface</p>
+                    <p><strong>Shading:</strong> Per-pixel (Phong)</p>
+                    <p><strong>Normal mapping:</strong> TBN matrix</p>
+                    <p><strong>Gram-Schmidt:</strong> Normal priority</p>
+                    <p><strong>Light:</strong> Rotating orbit</p>
+                </div>
+
+                <div class="texture-preview">
+                    <h4>Active Textures</h4>
+                    <div class="tex-list">
+                        <span>TMU0</span> Diffuse<br>
+                        <span>TMU1</span> Specular<br>
+                        <span>TMU2</span> Normal
+                    </div>
                 </div>
             </div>
         </div>
