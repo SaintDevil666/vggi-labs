@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>PA1 - Surface of Conjugation of Two Coaxial Cylinders</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            color: #c9d1d9;
+        }
+        .container {
+            max-width: 950px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #58a6ff;
+            font-weight: 400;
+            margin-bottom: 5px;
+        }
+        .subtitle {
+            color: #8b949e;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+        .main-area {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+        #canvas-holder {
+            background: #010409;
+            border-radius: 8px;
+            padding: 10px;
+            border: 1px solid #30363d;
+        }
+        #webglcanvas {
+            display: block;
+            border-radius: 4px;
+        }
+        .info-panel {
+            background: #161b22;
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid #30363d;
+            min-width: 220px;
+        }
+        .info-panel h3 {
+            margin: 0 0 15px 0;
+            color: #58a6ff;
+            font-size: 14px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .legend {
+            margin-bottom: 15px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            font-size: 13px;
+        }
+        .legend-color {
+            width: 24px;
+            height: 3px;
+            border-radius: 2px;
+        }
+        .info-box {
+            margin-top: 15px;
+            padding: 12px;
+            background: #21262d;
+            border-radius: 6px;
+            font-size: 12px;
+            color: #8b949e;
+        }
+        .info-box p {
+            margin: 4px 0;
+        }
+    </style>
+    <script src="./Utils/trackball-rotator.js"></script>
+    <script src="./Utils/m4.js"></script>
+    <script src="./shader.gpu"></script>
+    <script src="./Model.js"></script>
+    <script src="./main.js"></script>
+</head>
+<body onload="init()">
+    <div class="container">
+        <h1>Surface of Conjugation of Two Coaxial Cylinders</h1>
+
+        <div class="main-area">
+            <div id="canvas-holder">
+                <canvas width="600" height="600" id="webglcanvas"></canvas>
+            </div>
+
+            <div class="info-panel">
+                <h3>Curve Legend</h3>
+
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #33ccdd;"></div>
+                        <span>U-curves (horizontal circles)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #ff9966;"></div>
+                        <span>V-curves (vertical meridians)</span>
+                    </div>
+                </div>
+
+                <div class="info-box">
+                    <p><strong>Interaction:</strong> Drag to rotate</p>
+                    <p><strong>R1:</strong> 0.5 (inner radius)</p>
+                    <p><strong>R2:</strong> 1.5 (outer radius)</p>
+                    <p><strong>Height:</strong> 2.0</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

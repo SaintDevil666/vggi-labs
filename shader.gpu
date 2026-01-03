@@ -1,0 +1,24 @@
+// shaders: mvp transform + solid color
+
+// Vertex shader
+const vertexShaderSource = `
+attribute vec3 a_vertex;
+uniform mat4 u_mvp_matrix;
+
+void main() {
+    gl_Position = u_mvp_matrix * vec4(a_vertex, 1.0);
+}`;
+
+
+// Fragment shader
+const fragmentShaderSource = `
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+   precision highp float;
+#else
+   precision mediump float;
+#endif
+
+uniform vec4 u_color;
+void main() {
+    gl_FragColor = u_color;
+}`;
