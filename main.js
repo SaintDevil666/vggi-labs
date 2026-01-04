@@ -10,6 +10,11 @@ let n_beta = 36;
 let light_angle = 0;
 let anim_id = null;
 
+// rotation state
+let rot_center_u = 0.5;
+let rot_center_v = 0.5;
+let rot_angle_deg = 0;
+
 function ShaderProgram(name, program) {
     this.name = name;
     this.prog = program;
@@ -27,9 +32,23 @@ function ShaderProgram(name, program) {
     this.i_tex_specular = -1;
     this.i_tex_normal = -1;
 
+    // rotation uniforms
+    this.i_rot_center = -1;
+    this.i_rot_angle = -1;
+
     this.use = function() {
         gl.useProgram(this.prog);
     };
+}
+
+function get_light_position(angle) {
+    const radius = 3.0;
+    const height = 0.5;
+    return [
+        radius * Math.cos(angle),
+        radius * Math.sin(angle),
+        height
+    ];
 }
 
 function mat4_to_mat3_normal(mv) {
@@ -72,7 +91,7 @@ function draw() {
     const projection = m4.perspective(Math.PI / 8, 1, 8, 12);
     const model_view = spaceball.getViewMatrix();
 
-    const rotate_init = m4.axisRotation([1, 0, 0], 0.5);
+    const rotate_init = m4.axisRotation([0.707, 0.707, 0], 0.7);
     const translate_back = m4.translation(0, 0, -10);
 
     let mv = m4.multiply(rotate_init, model_view);
@@ -81,7 +100,8 @@ function draw() {
     const mvp = m4.multiply(projection, mv);
     const normal_mat = mat4_to_mat3_normal(mv);
 
-    const light_eye = transform_light([3.5 * Math.cos(light_angle), 3.5 * Math.sin(light_angle), 0.5], mv);
+    const light_world = get_light_position(light_angle);
+    const light_eye = transform_light(light_world, mv);
 
     gl.uniformMatrix4fv(sh_program.i_mvp_matrix, false, mvp);
     gl.uniformMatrix4fv(sh_program.i_mv_matrix, false, mv);
@@ -92,11 +112,15 @@ function draw() {
     gl.uniform1i(sh_program.i_tex_specular, 1);
     gl.uniform1i(sh_program.i_tex_normal, 2);
 
+    // rotation uniforms
+    gl.uniform2fv(sh_program.i_rot_center, [rot_center_u, rot_center_v]);
+    gl.uniform1f(sh_program.i_rot_angle, rot_angle_deg * Math.PI / 180);
+
     surface.draw();
 }
 
 function animate() {
-    light_angle += 0.018;
+    light_angle += 0.02;
     draw();
     anim_id = requestAnimationFrame(animate);
 }
@@ -121,16 +145,50 @@ function on_slider_v(val) {
     rebuild_surface();
 }
 
+function on_slider_rot(val) {
+    rot_angle_deg = parseFloat(val);
+    document.getElementById('val_rot').textContent = val + '\u00B0';
+}
+
+function update_center_display() {
+    document.getElementById('val_cu').textContent = rot_center_u.toFixed(2);
+    document.getElementById('val_cv').textContent = rot_center_v.toFixed(2);
+}
+
+function handle_key(e) {
+    const step = 0.025;
+    const key = e.key.toLowerCase();
+
+    switch (key) {
+        case 'a':
+            rot_center_u = Math.max(0, rot_center_u - step);
+            break;
+        case 'd':
+            rot_center_u = Math.min(1, rot_center_u + step);
+            break;
+        case 'w':
+            rot_center_v = Math.min(1, rot_center_v + step);
+            break;
+        case 's':
+            rot_center_v = Math.max(0, rot_center_v - step);
+            break;
+        default:
+            return;
+    }
+    update_center_display();
+}
+
 function init_gl() {
     const prog = create_program(gl, vertexShaderSource, fragmentShaderSource);
 
-    sh_program = new ShaderProgram('NormalMap', prog);
+    sh_program = new ShaderProgram('TextureRotation', prog);
     sh_program.use();
 
     sh_program.i_attrib_vertex = gl.getAttribLocation(prog, 'a_vertex');
     sh_program.i_attrib_normal = gl.getAttribLocation(prog, 'a_normal');
     sh_program.i_attrib_tangent = gl.getAttribLocation(prog, 'a_tangent');
     sh_program.i_attrib_texcoord = gl.getAttribLocation(prog, 'a_texcoord');
+
     sh_program.i_mvp_matrix = gl.getUniformLocation(prog, 'u_mvp_matrix');
     sh_program.i_mv_matrix = gl.getUniformLocation(prog, 'u_mv_matrix');
     sh_program.i_normal_matrix = gl.getUniformLocation(prog, 'u_normal_matrix');
@@ -138,6 +196,9 @@ function init_gl() {
     sh_program.i_tex_diffuse = gl.getUniformLocation(prog, 'u_tex_diffuse');
     sh_program.i_tex_specular = gl.getUniformLocation(prog, 'u_tex_specular');
     sh_program.i_tex_normal = gl.getUniformLocation(prog, 'u_tex_normal');
+
+    sh_program.i_rot_center = gl.getUniformLocation(prog, 'u_rot_center');
+    sh_program.i_rot_angle = gl.getUniformLocation(prog, 'u_rot_angle');
 
     surface = new Model('Surface');
     rebuild_surface();
@@ -197,5 +258,7 @@ function init() {
     }
 
     spaceball = new TrackballRotator(canvas, draw, 0);
+    document.addEventListener('keydown', handle_key);
+    update_center_display();
     animate();
 }

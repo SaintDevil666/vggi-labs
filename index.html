@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>PA3 - Textured Surface with Normal Mapping</title>
+    <title>CGW - Texture Coordinate Rotation</title>
     <style>
         * {
             box-sizing: border-box;
@@ -16,7 +16,7 @@
             color: #c9d1d9;
         }
         .container {
-            max-width: 950px;
+            max-width: 1000px;
             margin: 0 auto;
         }
         h1 {
@@ -49,7 +49,7 @@
             border-radius: 8px;
             padding: 20px;
             border: 1px solid #30363d;
-            min-width: 220px;
+            min-width: 260px;
         }
         .controls h3 {
             margin: 0 0 15px 0;
@@ -60,7 +60,7 @@
             letter-spacing: 0.5px;
         }
         .control-group {
-            margin-bottom: 20px;
+            margin-bottom: 18px;
         }
         .control-group label {
             display: flex;
@@ -96,8 +96,62 @@
             cursor: pointer;
             border: none;
         }
+        .section-divider {
+            border-top: 1px solid #30363d;
+            margin: 20px 0;
+            padding-top: 20px;
+        }
+        .center-display {
+            display: flex;
+            gap: 20px;
+            margin: 12px 0;
+        }
+        .center-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .center-item span:first-child {
+            color: #8b949e;
+            font-size: 12px;
+        }
+        .center-item .val {
+            background: #21262d;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-weight: 500;
+            color: #7ee787;
+            min-width: 50px;
+            text-align: center;
+        }
+        .keyboard-hint {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-top: 12px;
+        }
+        .key-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: #8b949e;
+        }
+        .key {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            background: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #c9d1d9;
+        }
         .info-box {
-            margin-top: 20px;
+            margin-top: 15px;
             padding: 12px;
             background: #21262d;
             border-radius: 6px;
@@ -107,28 +161,17 @@
         .info-box p {
             margin: 4px 0;
         }
-        .texture-preview {
-            margin-top: 15px;
-            padding-top: 15px;
-            border-top: 1px solid #30363d;
-        }
-        .texture-preview h4 {
-            margin: 0 0 10px 0;
-            color: #58a6ff;
-            font-size: 12px;
-            font-weight: 500;
-        }
-        .tex-list {
+        .footer {
+            margin-top: 20px;
             font-size: 11px;
-            line-height: 1.8;
+            color: #484f58;
         }
-        .tex-list span {
-            display: inline-block;
-            padding: 2px 6px;
-            background: #1f6feb;
-            border-radius: 3px;
-            margin-right: 4px;
-            color: #fff;
+        .easter-egg {
+            cursor: help;
+        }
+        .easter-egg:hover::after {
+            content: " (try spinning the texture 360 times)";
+            color: #f0883e;
         }
     </style>
     <script src="./Utils/trackball-rotator.js"></script>
@@ -141,7 +184,7 @@
 <body onload="init()">
     <div class="container">
         <h1>Surface of Conjugation of Two Coaxial Cylinders</h1>
-        <div class="subtitle">Variant #10 | Normal Mapping with Triple Texture</div>
+        <div class="subtitle">Variant #10 | <span class="easter-egg" title="Who knew UV coords could spin?">Texture Rotation</span></div>
 
         <div class="main-area">
             <div id="canvas-holder">
@@ -149,42 +192,70 @@
             </div>
 
             <div class="controls">
-                <h3>Mesh Density</h3>
+                <h3>Texture Rotation</h3>
 
                 <div class="control-group">
                     <label>
-                        <span>U Segments (height)</span>
-                        <span class="val" id="val_u">20</span>
+                        <span>Rotation Angle</span>
+                        <span class="val" id="val_rot">0°</span>
                     </label>
-                    <input type="range" min="4" max="50" value="20"
-                           oninput="on_slider_u(this.value)">
+                    <input type="range" min="0" max="360" value="0" step="1"
+                           oninput="on_slider_rot(this.value)">
                 </div>
 
-                <div class="control-group">
-                    <label>
-                        <span>V Segments (angle)</span>
-                        <span class="val" id="val_v">36</span>
-                    </label>
-                    <input type="range" min="8" max="72" value="36"
-                           oninput="on_slider_v(this.value)">
+                <div style="font-size: 12px; color: #8b949e; margin-bottom: 8px;">
+                    Rotation Center:
+                </div>
+                <div class="center-display">
+                    <div class="center-item">
+                        <span>U:</span>
+                        <span class="val" id="val_cu">0.50</span>
+                    </div>
+                    <div class="center-item">
+                        <span>V:</span>
+                        <span class="val" id="val_cv">0.50</span>
+                    </div>
+                </div>
+
+                <div class="keyboard-hint">
+                    <div class="key-item"><span class="key">W</span> V+</div>
+                    <div class="key-item"><span class="key">S</span> V-</div>
+                    <div class="key-item"><span class="key">A</span> U-</div>
+                    <div class="key-item"><span class="key">D</span> U+</div>
+                </div>
+
+                <div class="section-divider">
+                    <h3>Surface Granularity</h3>
+
+                    <div class="control-group">
+                        <label>
+                            <span>U Segments (height)</span>
+                            <span class="val" id="val_u">20</span>
+                        </label>
+                        <input type="range" min="4" max="50" value="20"
+                               oninput="on_slider_u(this.value)">
+                    </div>
+
+                    <div class="control-group">
+                        <label>
+                            <span>V Segments (angle)</span>
+                            <span class="val" id="val_v">36</span>
+                        </label>
+                        <input type="range" min="8" max="72" value="36"
+                               oninput="on_slider_v(this.value)">
+                    </div>
                 </div>
 
                 <div class="info-box">
-                    <p><strong>Shading:</strong> Per-pixel (Phong)</p>
-                    <p><strong>Normal mapping:</strong> TBN matrix</p>
-                    <p><strong>Gram-Schmidt:</strong> Normal priority</p>
-                    <p><strong>Light:</strong> Rotating orbit</p>
-                </div>
-
-                <div class="texture-preview">
-                    <h4>Active Textures</h4>
-                    <div class="tex-list">
-                        <span>TMU0</span> Diffuse<br>
-                        <span>TMU1</span> Specular<br>
-                        <span>TMU2</span> Normal
-                    </div>
+                    <p><strong>Shading:</strong> Per-pixel Phong</p>
+                    <p><strong>Normal map:</strong> TBN matrix</p>
+                    <p><strong>Light:</strong> Orbiting point</p>
                 </div>
             </div>
+        </div>
+
+        <div class="footer">
+            Drag to rotate view | WASD to move center | Built with WebGL 1.0
         </div>
     </div>
 </body>
